@@ -190,7 +190,10 @@ web:
   enabled: true
 
   image: {}
-
+  deployment:
+    apiVersion: apps/v1
+    kind: Deployment
+    strategy: rollingUpdate
   podAnnotations:
     prometheus.io/scrape: "true"
     prometheus.io/path: /metrics
