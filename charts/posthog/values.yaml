@@ -1663,7 +1663,7 @@ externalRedis:
 externalSessionRecordingRedis: {}
   # -- External Redis host to use.
   # host: ""
-  # -- External Redis port to use.
+# -- External Redis port to use.
 # port: 6379
 
 
@@ -1757,7 +1757,7 @@ zookeeper:
       annotations:
         "prometheus.io/scrape":
           "false" # let's make Prometheus skip the scraping of the
-          # service as we already scrape the pods (see below
+        # service as we already scrape the pods (see below
         # and https://github.com/bitnami/charts/issues/10101)
 
   ## -- Zookeeper pod(s) annotation.
@@ -1774,7 +1774,7 @@ zookeeper:
 ###
 clickhouse:
   # -- Whether to install clickhouse. If false, `clickhouse.host` must be set
-  enabled: false
+  enabled: true
   # -- Which namespace to install clickhouse and the `clickhouse-operator` to (defaults to namespace chart is installed to)
   namespace:
   # -- Clickhouse cluster
@@ -1855,7 +1855,7 @@ clickhouse:
   persistence:
     # -- Enable data persistence using PVC.
     enabled: true
-
+    hotCold: true
     # -- Use a manually managed Persistent Volume and Claim.
     #    If defined, PVC must be created manually before volume will be bound.
     #
@@ -1889,8 +1889,8 @@ clickhouse:
   ## For a full list of options, see https://github.com/Altinity/clickhouse-operator/blob/master/docs/custom_resource_explained.md
   ## section on clusters and layouts.
   layout:
-    shardsCount: 1
-    replicasCount: 1
+    shardsCount: 2
+    replicasCount: 2
 
   ## -- ClickHouse settings configuration.
   ## You can use this to override settings, for example `prometheus/port: 9363`
@@ -2003,15 +2003,15 @@ clickhouse:
 ##
 externalClickhouse:
   # -- Host of the external cluster. This is required when clickhouse.enabled is false
-  host: clickhouse-posthog.clickhouse.svc.cluster.local
+  host:
   # -- Name of the external cluster to run DDL queries on. This is required when clickhouse.enabled is false
-  cluster: posthog
+  cluster:
   # -- Database name for the external cluster
-  database: posthog
+  database:
   # -- User name for the external cluster to connect to the external cluster as
-  user: admin
+  user:
   # -- Password for the cluster. Ignored if existingClickhouse.existingSecret is set
-  password: a1f31e03-c88e-4ca6-a2df-ad49183d15d9
+  password:
   # -- Name of an existing Kubernetes secret object containing the password
   existingSecret:
   # -- Name of the key pointing to the password in your Kubernetes secret
@@ -2189,7 +2189,7 @@ loki:
       {}
       # Uncomment those lines if you want Prometheus server to scrape metrics.
       # prometheus.io/scrape: "true"
-      # prometheus.io/path: /metrics
+    # prometheus.io/path: /metrics
     # prometheus.io/port: "3100"
 
   read:
@@ -2318,7 +2318,7 @@ promtail:
     {}
     # Uncomment those lines if you want Prometheus server to scrape metrics.
     # prometheus.io/scrape: "true"
-    # prometheus.io/path: /metrics
+  # prometheus.io/path: /metrics
   # prometheus.io/port: "3101"
 
 ###
@@ -2337,7 +2337,7 @@ prometheus:
       {}
       # Uncomment those lines if you want Prometheus server to scrape metrics.
       # prometheus.io/scrape: "true"
-      # prometheus.io/path: /metrics
+    # prometheus.io/path: /metrics
     # prometheus.io/port: "9093"
 
   pushgateway:
