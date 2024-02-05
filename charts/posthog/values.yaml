@@ -1,5 +1,5 @@
 # -- Cloud service being deployed on (example: `aws`, `azure`, `do`, `gcp`, `other`).
-cloud:
+cloud: other
 
 # -- Notification email for notifications to be sent to from the PostHog stack
 notificationEmail:
@@ -10,11 +10,11 @@ siteUrl:
 
 image:
   # -- PostHog image repository to use.
-  repository: posthog/posthog
+  repository: 10.0.1.120:8000/moxi/posthog-self-host
   # -- PostHog image SHA to use (example: `sha256:20af35fca6756d689d6705911a49dd6f2f6631e001ad43377b605cfc7c133eb4`).
   sha:
   # -- PostHog image tag to use (example: `release-1.43.0`).
-  tag:
+  tag: 0.0.3
   # -- PostHog default image. Do not overwrite, use `image.sha` or `image.tag` instead.
   default: ":latest"
   # -- PostHog image pull policy.
@@ -136,8 +136,8 @@ recordings:
 # The majority of the capture config + chart resides in posthog/charts
 capture:
   ingress:
-    enabled: false
-    service: 
+    enabled: true
+    service:
       name: capture
       port: 3000
 
@@ -191,16 +191,10 @@ web:
 
   image: {}
 
-  deployment:
-    apiVersion: apps/v1
-    kind: Deployment
-    strategy: rollingUpdate
-
   podAnnotations:
-    # Uncomment these lines if you want Prometheus server to scrape metrics.
-    # prometheus.io/scrape: "true"
-    # prometheus.io/path: /metrics
-    # prometheus.io/port: "8001"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8001"
 
   # -- Count of web pods to run. This setting is ignored if `web.hpa.enabled` is set to `true`.
   replicacount: 1
@@ -242,10 +236,12 @@ web:
     # -- Set google oauth 2 whitelisted domains users can log in from.
     - name: SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS
       value: "posthog.com"
+    - name: SELF_CAPTURE
+      value: "TRUE"
 
   internalMetrics:
     # -- Deprecated: Whether to capture information on operation of posthog into posthog, exposed in /instance/status page
-    capture: false
+    capture: true
 
   # -- Node labels for web stack deployment.
   nodeSelector: {}
@@ -260,7 +256,7 @@ web:
     # -- The liveness probe failure threshold
     failureThreshold: 3
     # -- The liveness probe initial delay seconds
-    initialDelaySeconds: 0
+    initialDelaySeconds: 30
     # -- The liveness probe period seconds
     periodSeconds: 5
     # -- The liveness probe success threshold
@@ -1155,7 +1151,7 @@ pluginsScheduler:
 
 toolbox:
   # -- Whether to install the PostHog toolbox deployment
-  enabled: false
+  enabled: true
   # -- Additional env variables to inject into the toolbox deployment.
   env: []
   # -- Resource limits for the toolbox deployment.
@@ -1337,7 +1333,7 @@ ingress:
   # -- Ingress handler type. Defaults to `nginx` if nginx is enabled and to `clb` on gcp.
   type:
   # -- URL to address your PostHog installation. You will need to set up DNS after installation
-  hostname:
+  hostname: k8s-posthog.moxigame.top
   gcp:
     # -- Specifies the name of the global IP address resource to be associated with the google clb
     ip_name: "posthog"
@@ -1349,9 +1345,9 @@ ingress:
   letsencrypt:
   nginx:
     # -- Whether nginx is enabled
-    enabled: false
+    enabled: true
     # -- Whether to redirect to TLS with nginx ingress.
-    redirectToTLS: true
+    redirectToTLS: false
   # -- Extra annotations
   annotations: {}
   # -- TLS secret to be used by the ingress.
@@ -1410,12 +1406,12 @@ ingress-nginx:
       X-Correlation-ID: $request_id
 
     # Uncomment those lines if you want Prometheus server to scrape NGINX Ingress controller pods metrics.
-    # metrics:
-    #   enabled: true
-    #   service:
-    #     annotations:
-    #       prometheus.io/port: "10254"
-    #       prometheus.io/scrape: "true"
+    metrics:
+      enabled: true
+      service:
+        annotations:
+          prometheus.io/port: "10254"
+          prometheus.io/scrape: "true"
 
 ###
 ###
@@ -1424,7 +1420,7 @@ ingress-nginx:
 ###
 postgresql:
   # -- Whether to deploy a PostgreSQL server to satisfy the applications requirements. To use an external PostgreSQL instance set this to `false` and configure the `externalPostgresql` parameters.
-  enabled: true
+  enabled: false
   # -- Name override for PostgreSQL app.
   nameOverride: posthog-postgresql
   # -- PostgreSQL database name.
@@ -1439,15 +1435,15 @@ postgresql:
 
 externalPostgresql:
   # -- External PostgreSQL service host.
-  postgresqlHost:
+  postgresqlHost: posthog-db-clsuter-primary.postgres-operator.svc.cluster.local
   # -- External PostgreSQL service port.
   postgresqlPort: 5432
   # -- External PostgreSQL service database name.
-  postgresqlDatabase:
+  postgresqlDatabase: posthog
   # -- External PostgreSQL service user.
-  postgresqlUsername:
+  postgresqlUsername: rwhippo
   # -- External PostgreSQL service password. Either this or `externalPostgresql.existingSecret` must be set.
-  postgresqlPassword:
+  postgresqlPassword: uiBJRE)M;X}?qFi2{U2q0FTl
   # -- Name of an existing Kubernetes secret object containing the PostgreSQL password
   existingSecret:
   # -- Name of the key pointing to the password in your Kubernetes secret
@@ -1459,8 +1455,8 @@ externalPostgresql:
 ###
 ###
 
-_pgbouncer: &_pgbouncer 
-# -- Whether to deploy a PgBouncer service to satisfy the applications requirements.
+_pgbouncer: &_pgbouncer
+  # -- Whether to deploy a PgBouncer service to satisfy the applications requirements.
   enabled: true
 
   exporter:
@@ -1589,10 +1585,10 @@ pgbouncerRead:
 
   # Specify the host to use for a read-replica. This would usually be some sort of load balancer,
   # and otherwise all credentials would be the same
-  host: ""
+  host: "posthog-db-clsuter-replicas.postgres-operator.svc.cluster.local"
   fqdn: ""
 
-  enabled: false
+  enabled: true
 
 ###
 ###
@@ -1665,7 +1661,7 @@ externalSessionRecordingRedis: {}
   # -- External Redis host to use.
   # host: ""
   # -- External Redis port to use.
-  # port: 6379
+# port: 6379
 
 
 ###
@@ -1717,6 +1713,9 @@ externalSessionRecordingKafka:
   # - Use TLS to connect to the external kafka cluster
   tls: false
 
+temporal:
+  enable: false
+
 ###
 ###
 ### ---- TEMPORAL SCHEDULER ----
@@ -1724,11 +1723,11 @@ externalSessionRecordingKafka:
 ###
 externalTemporal:
   # - External Temporal scheduler's hostname
-  host: ""
+  host: "temporal-frontend.temporal.svc.cluster.local"
   # - External Temporal scheduler's port
   port: 7233
   # - Namespace to register into
-  namespace: ""
+  namespace: "default"
 
 ###
 ###
@@ -1742,7 +1741,7 @@ zookeeper:
   nameOverride: posthog-zookeeper
 
   # -- Number of ZooKeeper nodes
-  replicaCount: 1
+  replicaCount: 3
 
   autopurge:
     # -- The time interval (in hours) for which the purge task has to be triggered
@@ -1750,20 +1749,20 @@ zookeeper:
 
   metrics:
     # -- Enable Prometheus to access ZooKeeper metrics endpoint.
-    enabled: false
+    enabled: true
     service:
       annotations:
         "prometheus.io/scrape":
           "false" # let's make Prometheus skip the scraping of the
           # service as we already scrape the pods (see below
-          # and https://github.com/bitnami/charts/issues/10101)
+        # and https://github.com/bitnami/charts/issues/10101)
 
   ## -- Zookeeper pod(s) annotation.
   podAnnotations:
     # Uncomment those lines if you want Prometheus server to scrape Zookeeper pods metrics.
-    # prometheus.io/scrape: "true"
-    # prometheus.io/path: /metrics
-    # prometheus.io/port: "9141"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: "9141"
 
 ###
 ###
@@ -1772,7 +1771,7 @@ zookeeper:
 ###
 clickhouse:
   # -- Whether to install clickhouse. If false, `clickhouse.host` must be set
-  enabled: true
+  enabled: false
   # -- Which namespace to install clickhouse and the `clickhouse-operator` to (defaults to namespace chart is installed to)
   namespace:
   # -- Clickhouse cluster
@@ -1865,10 +1864,11 @@ clickhouse:
     #    If undefined (the default) or set to `null`, no storageClassName spec is
     #    set, choosing the default provisioner.
     #
-    storageClass: null
-
+    storageClass: longhorn-fast
     # -- Persistent Volume size
-    size: 20Gi
+    size: 500Gi
+    coldStorageClass: null
+    coldSize: 500Gi
 
   ## -- Clickhouse user profile configuration.
   ## You can use this to override profile settings, for example `default/max_memory_usage: 40000000000`
@@ -1894,7 +1894,11 @@ clickhouse:
   ## For the full list of settings, see:
   ## - https://clickhouse.com/docs/en/operations/settings/settings/
   settings:
-    {}
+    prometheus/endpoint: /metrics
+    prometheus/port: 9363
+    prometheus/metrics: true
+    prometheus/events: true
+    prometheus/asynchronous_metrics: true
     # Uncomment those lines if you want to enable the built-in Prometheus HTTP endpoint in ClickHouse.
     # prometheus/endpoint: /metrics
     # prometheus/port: 9363
@@ -1918,13 +1922,16 @@ clickhouse:
     # prometheus.io/scrape: "true"
     # prometheus.io/path: /metrics
     # prometheus.io/port: "9363"
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: "9363"
 
   ## -- Clickhouse pod distribution.
   podDistribution:
-    # Uncomment to have replicas of each shard reside in different availability zones.
-    # - scope: Shard
-    #   type: ShardAntiAffinity
-    #   topologyKey: "topology.kubernetes.io/zone"
+  # Uncomment to have replicas of each shard reside in different availability zones.
+  # - scope: Shard
+  #   type: ShardAntiAffinity
+  #   topologyKey: "topology.kubernetes.io/zone"
 
   client:
     image:
@@ -1993,15 +2000,15 @@ clickhouse:
 ##
 externalClickhouse:
   # -- Host of the external cluster. This is required when clickhouse.enabled is false
-  host:
+  host: clickhouse-posthog.clickhouse.svc.cluster.local
   # -- Name of the external cluster to run DDL queries on. This is required when clickhouse.enabled is false
-  cluster:
+  cluster: posthog
   # -- Database name for the external cluster
   database: posthog
   # -- User name for the external cluster to connect to the external cluster as
-  user:
+  user: admin
   # -- Password for the cluster. Ignored if existingClickhouse.existingSecret is set
-  password:
+  password: a1f31e03-c88e-4ca6-a2df-ad49183d15d9
   # -- Name of an existing Kubernetes secret object containing the password
   existingSecret:
   # -- Name of the key pointing to the password in your Kubernetes secret
@@ -2083,10 +2090,10 @@ minio:
 
   ## -- MinIO pod(s) annotation.
   podAnnotations:
-    # Uncomment those lines if you want Prometheus server to scrape MinIO pods metrics.
-    # prometheus.io/scrape: "true"
-    # prometheus.io/path: "/minio/v2/metrics/cluster"
-    # prometheus.io/port: "9000"
+  # Uncomment those lines if you want Prometheus server to scrape MinIO pods metrics.
+  # prometheus.io/scrape: "true"
+  # prometheus.io/path: "/minio/v2/metrics/cluster"
+  # prometheus.io/port: "9000"
 
 ## External Object Storage configuration
 ##
@@ -2111,7 +2118,7 @@ externalObjectStorage:
 ###
 grafana:
   # -- Whether to install Grafana or not.
-  enabled: false
+  enabled: true
 
   # -- Sidecar configuration to automagically pull the dashboards from the `charts/posthog/grafana-dashboard` folder. See [official docs](https://github.com/grafana/helm-charts/blob/main/charts/grafana/README.md) for more info.
   sidecar:
@@ -2136,7 +2143,7 @@ grafana:
           jsonData:
             timeInterval:
               60s # pass this explicitly so it can be used by '$__rate_interval'
-              # https://grafana.com/blog/2020/09/28/new-in-grafana-7.2-__rate_interval-for-prometheus-rate-queries-that-just-work/
+            # https://grafana.com/blog/2020/09/28/new-in-grafana-7.2-__rate_interval-for-prometheus-rate-queries-that-just-work/
 
         # Comment the snippet below if you are running with `loki.enabled: false`
         - name: Loki
@@ -2180,7 +2187,7 @@ loki:
       # Uncomment those lines if you want Prometheus server to scrape metrics.
       # prometheus.io/scrape: "true"
       # prometheus.io/path: /metrics
-      # prometheus.io/port: "3100"
+    # prometheus.io/port: "3100"
 
   read:
     replicas: 1
@@ -2309,7 +2316,7 @@ promtail:
     # Uncomment those lines if you want Prometheus server to scrape metrics.
     # prometheus.io/scrape: "true"
     # prometheus.io/path: /metrics
-    # prometheus.io/port: "3101"
+  # prometheus.io/port: "3101"
 
 ###
 ###
@@ -2318,17 +2325,17 @@ promtail:
 ###
 prometheus:
   # -- Whether to install Prometheus or not.
-  enabled: false
+  enabled: true
 
   alertmanager:
     # -- Whether to install Prometheus AlertManager or not.
-    enabled: false
+    enabled: true
     podAnnotations:
       {}
       # Uncomment those lines if you want Prometheus server to scrape metrics.
       # prometheus.io/scrape: "true"
       # prometheus.io/path: /metrics
-      # prometheus.io/port: "9093"
+    # prometheus.io/port: "9093"
 
   pushgateway:
     # -- Whether to install Prometheus Pushgateway or not.
@@ -3284,7 +3291,7 @@ prometheus:
 ###
 prometheus-pushgateway:
   # -- Whether to install the `prometheus-pushgateway` or not.
-  enabled: false
+  enabled: true
   # -- Map of annotations to add to the pods.
   podAnnotations:
     prometheus.io/scrape: "true"
@@ -3309,7 +3316,7 @@ external-prometheus-pushgateway:
 ###
 prometheus-statsd-exporter:
   # -- Whether to install the `prometheus-statsd-exporter` or not.
-  enabled: false
+  enabled: true
   # -- Map of annotations to add to the pods.
   podAnnotations:
     prometheus.io/scrape: "true"
@@ -3329,14 +3336,18 @@ externalStatsd:
 ###
 prometheus-kafka-exporter:
   # -- Whether to install the `prometheus-kafka-exporter` or not.
-  enabled: false
+  enabled: true
 
   # -- Map of annotations to add to the pods.
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/path: /metrics
     prometheus.io/port: "9308"
-
+  rbac:
+    # Specifies whether RBAC resources should be created
+    create: false
+    # Specifies whether a PodSecurityPolicy should be created
+    pspEnabled: false
   # -- Specify the target Kafka brokers to monitor.
   kafkaServer:
     - posthog-posthog-kafka:9092
@@ -3349,7 +3360,11 @@ prometheus-kafka-exporter:
 prometheus-postgres-exporter:
   # -- Whether to install the `prometheus-postgres-exporter` or not.
   enabled: false
-
+  rbac:
+    # Specifies whether RBAC resources should be created
+    create: false
+    # Specifies whether a PodSecurityPolicy should be created
+    pspEnabled: false
   # -- Map of annotations to add to the pods.
   annotations:
     prometheus.io/scrape: "true"
@@ -3372,8 +3387,12 @@ prometheus-postgres-exporter:
 ###
 prometheus-redis-exporter:
   # -- Whether to install the `prometheus-redis-exporter` or not.
-  enabled: false
-
+  enabled: true
+  rbac:
+    # Specifies whether RBAC resources should be created
+    create: false
+    # Specifies whether a PodSecurityPolicy should be created
+    pspEnabled: false
   # -- Map of annotations to add to the pods.
   annotations:
     prometheus.io/scrape: "true"

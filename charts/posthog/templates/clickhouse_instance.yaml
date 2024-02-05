@@ -38,6 +38,29 @@ spec:
       {{- merge dict .Values.clickhouse.settings .Values.clickhouse.defaultSettings | toYaml | nindent 6 }}
 
     files:
+      {{- if .Values.clickhouse.hotCold }}
+      config.d/storage_configuration.xml: |
+        <yandex>
+         <storage_configuration>
+           <disks>
+             <default></default>
+             <hdd_disk><path>/data/hdd/clickhouse/</path></hdd_disk>
+           </disks>
+           <policies>
+             <hot_cold>
+               <volumes>
+                 <hot>
+                   <disk>default</disk>
+                 </hot>
+                 <cold>
+                   <disk>hdd_disk</disk>
+                 </cold>
+               </volumes>
+             </hot_cold>
+           </policies>
+         </storage_configuration>
+        </yandex>
+      {{- end }}
       events.proto: |
         syntax = "proto3";
         message Event {
@@ -129,7 +152,10 @@ spec:
               {{- end }}
                   mountPath: /var/lib/clickhouse
               {{- end }}
-
+              {{- if .Values.clickhouse.hotCold }}
+                - name: cold-volumeclaim-template
+                  mountPath: /data/hdd/clickhouse
+              {{- end }}
               {{- if .Values.clickhouse.resources }}
               resources: {{ toYaml .Values.clickhouse.resources | nindent 16 }}
               {{- end }}
@@ -163,6 +189,15 @@ spec:
 
     {{- if and (.Values.clickhouse.persistence.enabled) (not .Values.clickhouse.persistence.existingClaim) }}
     volumeClaimTemplates:
+      {{- if .Values.clickhouse.hotCold }}
+      - name: cold-volumeclaim-template
+        storageClassName: {{ .Values.clickhouse.persistence.coldStorageClass }}
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.clickhouse.persistence.coldSize | quote }}
+      {{- end }}
       - name: data-volumeclaim-template
         spec:
           {{- if .Values.clickhouse.persistence.storageClass }}
