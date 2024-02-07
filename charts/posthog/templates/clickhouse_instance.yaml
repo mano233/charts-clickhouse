@@ -49,9 +49,9 @@ spec:
            <policies>
              <hot_cold>
                <volumes>
-                 <hot>
+                 <default>
                    <disk>default</disk>
-                 </hot>
+                 </default>
                  <cold>
                    <disk>hdd_disk</disk>
                  </cold>
